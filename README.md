@@ -3,6 +3,8 @@
 
 If you'd like, say, some sort of _animation framework_, have a look at *BAF* [1], which I wrote as a higher level companion.
 
+Remember, perfect is the enemy of good enough.
+
 ### Future Features
 * Non-linear interpolation
 * An optimistic outlook on life

@@ -1,3 +1,15 @@
+# VIM stuff
+.swp
+# swap
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+# session
+Session.vim
+# temporary
+.netrwhist
+*~
+
+
 # Object files
 *.o
 *.ko
