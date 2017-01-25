@@ -28,8 +28,8 @@ struct yabi_ChannelState {
 
 
 //Callbacks
-typedef void (*yabi_StartCallback)(yabi_FrameID frame);
-typedef void (*yabi_EndCallback)(yabi_FrameID frame);
+typedef void (*yabi_FrameStartCallback)(yabi_FrameID frame);
+typedef void (*yabi_FrameEndCallback)(yabi_FrameID frame);
 typedef void (*yabi_ChannelChange)(yabi_ChanID chan, yabi_ChanValue value);
 typedef void (*yabi_ChannelGroupChange)(struct yabi_ChannelState channelVals[], uint32_t num);
 
@@ -43,8 +43,8 @@ struct yabi_HardwareConfig {
 };
 
 struct yabi_Config {
-   yabi_StartCallback         frameStartCB;
-   yabi_EndCallback           frameEndCB;
+   yabi_FrameStartCallback    frameStartCB;
+   yabi_FrameEndCallback      frameEndCB;
    yabi_ChannelChange         channelChangeCB;
    yabi_ChannelGroupChange    channelChangeGroupCB;
    struct yabi_HardwareConfig hwConfig;
