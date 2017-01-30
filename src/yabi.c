@@ -1,6 +1,6 @@
 #include "yabi/yabi.h"
 
-yabi_Error yabi_init(struct yabi_Config* cfg) {
+yabi_Error yabi_init(struct yabi_Config* const cfg) {
    //TODO write this
    return YABI_UNIMPLIMENTED;
 }
