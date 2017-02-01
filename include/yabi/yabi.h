@@ -4,9 +4,15 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+//User configurable max channel. Also sets the max 'Channel ID',
+//which goes from 0-> MAX_CONTROL_CHANNELS.
+#define  MAX_CONTROL_CHANNELS          32
+
 typedef enum {
    YABI_OK,
    YABI_UNIMPLIMENTED,
+   YABI_NOT_INITIALIZED,
+   YABI_BAD_PARAM,
    YABI_ERR,
 } yabi_Error;
 
@@ -14,6 +20,8 @@ typedef enum {
 typedef uint32_t     yabi_ChanID;
 typedef uint32_t     yabi_ChanValue;
 typedef uint32_t     yabi_FrameID;
+
+static const yabi_ChanID   CHANNEL_INACTIVE;
 
 struct yabi_ChannelGroup {
    yabi_ChanID       id;
