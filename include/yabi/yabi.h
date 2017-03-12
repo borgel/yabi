@@ -58,7 +58,7 @@ struct yabi_Config {
    struct yabi_HardwareConfig hwConfig;
 };
 
-yabi_Error yabi_init(struct yabi_Config* const cfg);
+yabi_Error yabi_init(struct yabi_Config* const cfg, struct yabi_ChannelState* const initialValues, uint32_t num);
 yabi_Error yabi_giveTime(uint32_t systimeMS);
 yabi_Error yabi_setStarted(bool start);
 yabi_Error yabi_setChannel(yabi_ChanID channelID, yabi_ChanValue newTarget, uint32_t transitionTimeMS);

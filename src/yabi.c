@@ -42,7 +42,14 @@ struct yabi_State{
 static struct yabi_State state = {};
 
 
-yabi_Error yabi_init(struct yabi_Config* const cfg) {
+/*
+ * Initialize this YABI instance.
+ * `initialValues` are optional, but if provided will be used to set all initial
+ * channel values on init. These initial values will be applied to all affected
+ * channels on library start.
+ * To not use them, pass in NULL and 0 for `initialValues` and `num` respectively.
+ */
+yabi_Error yabi_init(struct yabi_Config* const cfg, struct yabi_ChannelState* const initialValues, uint32_t num) {
    if(!cfg) {
       return YABI_BAD_PARAM;
    }
@@ -53,8 +60,18 @@ yabi_Error yabi_init(struct yabi_Config* const cfg) {
    state.currentFrame = 0;
    state.lastUpdateMS = 0;
 
-   state.initialized = true;
+   if(initialValues && num > 0 && num < MAX_CONTROL_CHANNELS) {
+      struct yabi_ChannelState* iv;
+      for(int i = 0; i < num; i++) {
+         iv = &initialValues[i];
+
+         //request instant transition to the initial value
+         yabi_setChannel(iv->id, iv->value, 0);
+      }
+   }
+
    state.started = false;
+   state.initialized = true;
 
    return YABI_OK;
 }
@@ -120,9 +137,13 @@ yabi_Error yabi_giveTime(uint32_t systimeMS) {
 }
 
 yabi_Error yabi_setStarted(bool start) {
+   yabi_Error e;
    if(start) {
       if(state.config.hwConfig.setup) {
          state.hwStateObject = state.config.hwConfig.setup();
+
+         //apply all values to all live channels
+         e = yabi_giveTime(0);
       }
    }
    else {

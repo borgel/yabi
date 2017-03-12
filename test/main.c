@@ -85,7 +85,12 @@ void test1(void) {
       },
    };
 
-   res = yabi_init(&cfg);
+   struct yabi_ChannelState initials[] = {
+      {.id = 1, .value = 10},
+   };
+
+   res = yabi_init(&cfg, initials, sizeof(initials) / sizeof(initials[0]));
+   printf("Done with init\n");
    yabi_setStarted(true);
 
    t1_doLoop(10, 100);
