@@ -16,7 +16,7 @@ typedef enum {
    YABI_ERR,
 } yabi_Error;
 
-//TODO support other types here?
+//TODO support other types?
 typedef uint32_t     yabi_ChanID;
 typedef uint32_t     yabi_ChanValue;
 typedef uint32_t     yabi_FrameID;

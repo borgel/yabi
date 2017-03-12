@@ -2,16 +2,41 @@
 
 #include <stdbool.h>
 
+/*
+ * A note on channel accounting:
+ *    This is designed to only support up to MAX_CONTROL_CHANNELS channels of
+ *    control. If that's the case, and NO duplicate control channels are allowed,
+ *    than storing channel info progressively from slot 0 up
+ *    (AKA ChanID != bucket) only gives us faster channel change calculation
+ *    time. For now, that is a future design goal, so we won't do it.
+ */
+
+struct yabi_ChannelRecord {
+   yabi_ChanID       id;
+
+   //past data
+   yabi_ChanValue    valuePrevious;
+   //ABSOLUTE systime start
+   uint32_t          transitionStartMS;
+
+   //current data
+   yabi_ChanValue    value;
+
+   //future data
+   yabi_ChanValue    valueTarget;
+   //ABSOLUTE systime end
+   uint32_t          transitionEndMS;
+};
+
 struct yabi_State{
-   bool                       initialized;
-   bool                       started;
-   struct yabi_Config         config;
-   void*                      hwStateObject;
+   bool                          initialized;
+   bool                          started;
+   struct yabi_Config            config;
+   void*                         hwStateObject;
 
-   struct yabi_ChannelState   channels[MAX_CONTROL_CHANNELS];
-   uint32_t                   lastUpdateMS;
+   struct yabi_ChannelRecord     channels[MAX_CONTROL_CHANNELS];
+   uint32_t                      lastUpdateMS;
 
-   //FIXME better way to do this?
    yabi_FrameID               currentFrame;
 };
 static struct yabi_State state = {};
@@ -34,46 +59,64 @@ yabi_Error yabi_init(struct yabi_Config* const cfg) {
    return YABI_OK;
 }
 
+/*
+   Workflow:
+   calculate ∆ time step from last update
+   iterate through all channels
+   calculate position change for each channel
+   issue channel change (or channel group change?) commands ith those values
+       in the future, if it's a group change, batch all changes together and issue them in one call
+   update last update timestamp
+*/
 yabi_Error yabi_giveTime(uint32_t systimeMS) {
    if(!state.initialized || !state.started) {
       return YABI_NOT_INITIALIZED;
    }
 
-   struct yabi_ChannelState* c;
-
-   //TODO write this
-
-   //calculate ∆ time step from last update
-   //iterate through all channels
-   //calculate position change for each channel
-   //issue channel change (or channel group change?) commands ith those values
-   //update last update timestamp
 
    if(state.config.frameStartCB) {
       state.config.frameStartCB(state.currentFrame);
    }
 
-   //TODO use calculation that prevents wraps
+   //FIXME use calculation that prevents wraps
    uint32_t timeChange = systimeMS - state.lastUpdateMS;
 
+   float timeFraction;
+   struct yabi_ChannelRecord *r;
    int i;
    for(i = 0; i < MAX_CONTROL_CHANNELS; i++) {
-      c = &state.channels[i];
-      if(c->id == CHANNEL_INACTIVE) {
+      r = &state.channels[i];
+      if(r->id == CHANNEL_INACTIVE) {
          continue;
       }
 
-      //TODO do apply channel change
+      if(r->value != r->valueTarget) {
+         if(systimeMS >= r->transitionEndMS) {
+            r->value = r->valueTarget;
+         }
+         else {
+            //TODO make all this fixed point
+            timeFraction = r->transitionEndMS - r->transitionStartMS;
+            timeFraction = timeChange / timeFraction;
+
+            //LERP it (start + percent * (end - start));
+            r->value += timeFraction * (r->valueTarget - r->valuePrevious);
+         }
+
+         if(state.config.channelChangeCB) {
+            state.config.channelChangeCB(r->id, r->value);
+         }
+      }
    }
 
-   if(state.config.frameStartCB) {
-      state.config.frameStartCB(state.currentFrame);
+   if(state.config.frameEndCB) {
+      state.config.frameEndCB(state.currentFrame);
    }
 
    state.lastUpdateMS = systimeMS;
    state.currentFrame++;
 
-   return YABI_UNIMPLIMENTED;
+   return YABI_OK;
 }
 
 yabi_Error yabi_setStarted(bool start) {
@@ -98,8 +141,18 @@ yabi_Error yabi_setChannel(yabi_ChanID channelID, yabi_ChanValue newTarget, uint
       return YABI_BAD_PARAM;
    }
 
-   //TODO write this
-   return YABI_UNIMPLIMENTED;
+   struct yabi_ChannelRecord *r = &state.channels[channelID];
+
+   r->valuePrevious = r->value;
+   r->valueTarget = newTarget;
+   // this will be imprecise, as we don't know the exact systime.
+   r->transitionStartMS = state.lastUpdateMS;
+   //FIXME check for rollover
+   r->transitionEndMS = state.lastUpdateMS + transitionTimeMS;
+   //This is redundant, but about as efficient as using a bool to indicate 'active'. This facilitates later changes though.
+   r->id = channelID;
+
+   return YABI_OK;
 }
 
 yabi_Error yabi_setChannelGroup(struct yabi_ChannelGroup channels[], uint32_t num) {
