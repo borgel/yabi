@@ -1,6 +1,6 @@
 INC_DIR = include/
 OBJECTS = yabi.o
-CFLAGS = -g -Wall -I$(INC_DIR)
+CFLAGS = -g -Wall -Wpedantic -I$(INC_DIR)
 
 .PHONY: all clean
 
