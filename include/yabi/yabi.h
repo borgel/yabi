@@ -4,10 +4,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-//User configurable max channel. Also sets the max 'Channel ID',
-//which goes from 0-> MAX_CONTROL_CHANNELS.
-#define  MAX_CONTROL_CHANNELS          32
-
 typedef enum {
    YABI_OK,
    YABI_UNIMPLIMENTED,
@@ -34,6 +30,8 @@ struct yabi_ChannelState {
    yabi_ChanValue    value;
 };
 
+// opaque struct used internally allocate channel info
+struct yabi_ChannelRecord;
 
 //Callbacks
 typedef void (*yabi_FrameStartCallback)(yabi_FrameID frame);
@@ -50,6 +48,11 @@ struct yabi_HardwareConfig {
    void*                   hwConfig;
 };
 
+struct yabi_ChannelStateConfiguration {
+   struct yabi_ChannelRecord * const   channelStorage;
+   uint32_t                            numChannels;
+};
+
 struct yabi_Config {
    yabi_FrameStartCallback    frameStartCB;
    yabi_FrameEndCallback      frameEndCB;
@@ -58,11 +61,30 @@ struct yabi_Config {
    struct yabi_HardwareConfig hwConfig;
 };
 
-yabi_Error yabi_init(struct yabi_Config* const cfg, struct yabi_ChannelState* const initialValues, uint32_t num);
+yabi_Error yabi_init(struct yabi_Config* const cfg, struct yabi_ChannelStateConfiguration const * const chanConfig);
 yabi_Error yabi_giveTime(uint32_t systimeMS);
 yabi_Error yabi_setStarted(bool start);
 yabi_Error yabi_setChannel(yabi_ChanID channelID, yabi_ChanValue newTarget, uint32_t transitionTimeMS);
 yabi_Error yabi_setChannelGroup(struct yabi_ChannelGroup channels[], uint32_t num);
+
+// ssshhh, don't look at this. It's meant to be private! But it needs to be exposed to allow
+// static allocation.
+struct yabi_ChannelRecord {
+   yabi_ChanID       id;
+
+   //past data
+   yabi_ChanValue    valuePrevious;
+   //ABSOLUTE systime start
+   uint32_t          transitionStartMS;
+
+   //current data
+   yabi_ChanValue    value;
+
+   //future data
+   yabi_ChanValue    valueTarget;
+   //ABSOLUTE systime end
+   uint32_t          transitionEndMS;
+};
 
 
 #endif//YABI_H__

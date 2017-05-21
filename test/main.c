@@ -69,6 +69,13 @@ static void t1_doLoop(int iterations, int delayMS) {
    }
 }
 
+// the backing datastore of channel state
+static struct yabi_ChannelRecord chanStore[10];
+static struct yabi_ChannelStateConfiguration chanConfig = {
+   .channelStorage   = chanStore,
+   .numChannels      = 10,
+};
+
 //init and teardown
 void test1(void) {
    yabi_Error res;
@@ -85,11 +92,7 @@ void test1(void) {
       },
    };
 
-   struct yabi_ChannelState initials[] = {
-      {.id = 1, .value = 10},
-   };
-
-   res = yabi_init(&cfg, initials, sizeof(initials) / sizeof(initials[0]));
+   res = yabi_init(&cfg, &chanConfig);
    printf("Done with init\n");
    yabi_setStarted(true);
 

@@ -10,36 +10,20 @@
  *    (AKA ChanID != bucket) only gives us faster channel change calculation
  *    time. For now, that is a future design goal, so we won't do it.
  */
-
-struct yabi_ChannelRecord {
-   yabi_ChanID       id;
-
-   //past data
-   yabi_ChanValue    valuePrevious;
-   //ABSOLUTE systime start
-   uint32_t          transitionStartMS;
-
-   //current data
-   yabi_ChanValue    value;
-
-   //future data
-   yabi_ChanValue    valueTarget;
-   //ABSOLUTE systime end
-   uint32_t          transitionEndMS;
-};
-
 struct yabi_State{
-   bool                          initialized;
-   bool                          started;
-   struct yabi_Config            config;
-   void*                         hwStateObject;
+   bool                                initialized;
+   bool                                started;
+   struct yabi_Config                  config;
+   void*                               hwStateObject;
 
-   struct yabi_ChannelRecord     channels[MAX_CONTROL_CHANNELS];
-   uint32_t                      lastUpdateMS;
+   // user alloated pointer to channel state data
+   struct yabi_ChannelRecord*          channels;
+   uint32_t                            numChannels;
+   uint32_t                            lastUpdateMS;
 
-   yabi_FrameID               currentFrame;
+   yabi_FrameID                        currentFrame;
 };
-static struct yabi_State state = {};
+static struct yabi_State state = {0};
 
 
 /*
@@ -49,8 +33,11 @@ static struct yabi_State state = {};
  * channels on library start.
  * To not use them, pass in NULL and 0 for `initialValues` and `num` respectively.
  */
-yabi_Error yabi_init(struct yabi_Config* const cfg, struct yabi_ChannelState* const initialValues, uint32_t num) {
-   if(!cfg) {
+yabi_Error yabi_init(struct yabi_Config* const cfg, struct yabi_ChannelStateConfiguration const * const chanConfig) {
+   if(!cfg || !chanConfig) {
+      return YABI_BAD_PARAM;
+   }
+   else if(chanConfig->numChannels == 0 || !chanConfig->channelStorage){
       return YABI_BAD_PARAM;
    }
 
@@ -60,14 +47,13 @@ yabi_Error yabi_init(struct yabi_Config* const cfg, struct yabi_ChannelState* co
    state.currentFrame = 0;
    state.lastUpdateMS = 0;
 
-   if(initialValues && num > 0 && num < MAX_CONTROL_CHANNELS) {
-      struct yabi_ChannelState* iv;
-      for(int i = 0; i < num; i++) {
-         iv = &initialValues[i];
+   //wire up user provided channel data storage
+   state.channels = chanConfig->channelStorage;
+   state.numChannels = chanConfig->numChannels;
 
-         //request instant transition to the initial value
-         yabi_setChannel(iv->id, iv->value, 0);
-      }
+   for(int i = 0; i < state.numChannels; i++) {
+      //request instant transition to 0
+      yabi_setChannel(i, 0, 0);
    }
 
    state.started = false;
@@ -101,7 +87,7 @@ yabi_Error yabi_giveTime(uint32_t systimeMS) {
    float timeFraction;
    struct yabi_ChannelRecord *r;
    int i;
-   for(i = 0; i < MAX_CONTROL_CHANNELS; i++) {
+   for(i = 0; i < state.numChannels; i++) {
       r = &state.channels[i];
       if(r->id == CHANNEL_INACTIVE) {
          continue;
@@ -158,7 +144,7 @@ yabi_Error yabi_setStarted(bool start) {
 }
 
 yabi_Error yabi_setChannel(yabi_ChanID channelID, yabi_ChanValue newTarget, uint32_t transitionTimeMS) {
-   if(channelID > MAX_CONTROL_CHANNELS) {
+   if(channelID > state.numChannels) {
       return YABI_BAD_PARAM;
    }
 
