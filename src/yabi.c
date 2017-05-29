@@ -103,7 +103,12 @@ yabi_Error yabi_giveTime(uint32_t systimeMS) {
             timeFraction = timeChange / timeFraction;
 
             //LERP it (start + percent * (end - start));
-            r->value += timeFraction * (r->valueTarget - r->valuePrevious);
+            if(r->valueTarget > r->valuePrevious) {
+               r->value += timeFraction * (r->valueTarget - r->valuePrevious);
+            }
+            else {
+               r->value -= timeFraction * (r->valuePrevious - r->valueTarget);
+            }
          }
 
          if(state.config.channelChangeCB) {
