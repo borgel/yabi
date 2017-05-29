@@ -67,7 +67,7 @@ yabi_Error yabi_init(struct yabi_Config* const cfg, struct yabi_ChannelStateConf
    calculate ∆ time step from last update
    iterate through all channels
    calculate position change for each channel
-   issue channel change (or channel group change?) commands ith those values
+   issue channel change (or channel group change?) commands with those values
        in the future, if it's a group change, batch all changes together and issue them in one call
    update last update timestamp
 */
@@ -123,7 +123,7 @@ yabi_Error yabi_giveTime(uint32_t systimeMS) {
 }
 
 yabi_Error yabi_setStarted(bool start) {
-   yabi_Error e;
+   yabi_Error e = YABI_OK;
    if(start) {
       if(state.config.hwConfig.setup) {
          state.hwStateObject = state.config.hwConfig.setup();
@@ -140,7 +140,7 @@ yabi_Error yabi_setStarted(bool start) {
 
    state.started = start;
 
-   return YABI_OK;
+   return e;
 }
 
 yabi_Error yabi_setChannel(yabi_ChanID channelID, yabi_ChanValue newTarget, uint32_t transitionTimeMS) {
