@@ -61,6 +61,9 @@ static void t1_doLoop(int iterations, int delayMS) {
             printf("SetChannel Err: Code %d\n", res);
          }
       }
+      else if(i == 10) {
+         res = yabi_setChannel(2, 20, 452);
+      }
 
       yabi_giveTime(time);
 
@@ -96,7 +99,7 @@ void test1(void) {
    printf("Done with init\n");
    yabi_setStarted(true);
 
-   t1_doLoop(10, 100);
+   t1_doLoop(20, 100);
 
    yabi_setStarted(false);
 }
