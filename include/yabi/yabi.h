@@ -17,7 +17,7 @@ typedef uint32_t     yabi_ChanID;
 typedef uint32_t     yabi_ChanValue;
 typedef uint32_t     yabi_FrameID;
 
-static const yabi_ChanID   CHANNEL_INACTIVE;
+static const yabi_ChanID   CHANNEL_INACTIVE  = 0xFFFFFFFF;
 
 struct yabi_ChannelGroup {
    yabi_ChanID       id;
