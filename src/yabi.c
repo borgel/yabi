@@ -84,6 +84,7 @@ yabi_Error yabi_giveTime(uint32_t systimeMS) {
    //FIXME use calculation that prevents wraps
    uint32_t timeChange = systimeMS - state.lastUpdateMS;
 
+   yabi_ChanValue change;
    float timeFraction;
    struct yabi_ChannelRecord *r;
    int i;
@@ -100,14 +101,19 @@ yabi_Error yabi_giveTime(uint32_t systimeMS) {
          else {
             //TODO make all this fixed point
             timeFraction = r->transitionEndMS - r->transitionStartMS;
-            timeFraction = timeChange / timeFraction;
+            timeFraction = (float)timeChange / timeFraction;
 
             //LERP it (start + percent * (end - start));
             if(r->valueTarget > r->valuePrevious) {
-               r->value += timeFraction * (r->valueTarget - r->valuePrevious);
+               change = timeFraction * (float)((float)r->valueTarget - (float)r->valuePrevious);
+               // make sure any change < 0 is rounded up (we only deal in integers)
+               change = (change == 0) ? 1 : change;
+               r->value += change;
             }
             else {
-               r->value -= timeFraction * (r->valuePrevious - r->valueTarget);
+               change = timeFraction * (float)(r->valuePrevious - r->valueTarget);
+               change = (change == 0) ? 1 : change;
+               r->value -= change;
             }
          }
 
