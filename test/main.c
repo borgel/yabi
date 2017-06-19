@@ -77,63 +77,45 @@ static void t1_doLoop(int iterations, int delayMS) {
    }
 }
 
-static yabi_ChanValue t1_Interpolate(yabi_ChanValue current, yabi_ChanValue start, yabi_ChanValue end, float fraction) {
-   //FIXME rm
-   if(end == 10) {
-      printf("inter: c:%d s:%d e:%d f:%f\n", current, start, end, fraction);
-      //printf("cur - 
-      //TODO how to we determine which way to approach? -- or ++ around the circle?
-      // mod math?
-      // 250->10 is faster ++ than --
-      //compare to target and target + 255
-      // 250->255+10 (265) is faster ++ than 250->10
+static yabi_ChanValue t1_RolloverInterpolate(yabi_ChanValue current, yabi_ChanValue start, yabi_ChanValue end, float fraction) {
+   printf("inter: c:%d s:%d e:%d f:%f\n", current, start, end, fraction);
 
-      // rollover is the new less than
-      if(0xFF + end > start) {
-         printf("a");
-      }
-      else {
-         printf("b");
-      }
-      /*
-      if(end > start) {
-         printf("e-s = %u vs (e+F) - s = %u\n", end-start, (end+0xFF)-start);
-         if(end - start > (end + 0xFF) - start) {
-            printf("down");
-         }
-         else {
-            printf("rollover");
-         }
-      }
-      else {
-         printf("s-e = %u vs MMM = %u\n", start - end, (start+0xFF)-end);
-         if(start - end> (start + 0xFF) - end) {
-            printf("down");
-         }
-         else {
-            printf("rollover");
-         }
-      }
-      */
-      /*
-      if(end > start) {
-         change = fraction * (float)((float)end - (float)start);
-         // make sure any change < 0 is rounded up (we only deal in integers)
-         change = (change == 0) ? 1 : change;
-         return current + change;
-      }
-      else {
-         change = fraction * (float)(start - end);
-         change = (change == 0) ? 1 : change;
-         return current - change;
-      }
-      */
+   uint32_t change;
+   uint8_t mod;
 
-      return end;
+   //printf("cur - 
+   //TODO how to we determine which way to approach? -- or ++ around the circle?
+   // mod math?
+   // 250->10 is faster ++ than --
+   //compare to target and target + 255
+   // 250->255+10 (265) is faster ++ than 250->10
+
+   // rollover is the new less than
+   //TODO need abs?
+   if(((0xFF + end) - start) < (end - start)) {
+      printf("sub");
+      mod = 0xFF;
    }
    else {
-      return end;
+      printf("normal");
+      mod = 0;
    }
+
+   change = fraction * (float)((float)(end + mod) - (float)start);
+   return (uint8_t)(current + change);
+   /*
+   if(end > start) {
+      change = fraction * (float)((float)end - (float)start);
+      // make sure any change < 0 is rounded up (we only deal in integers)
+      change = (change == 0) ? 1 : change;
+      return current + change;
+   }
+   else {
+      change = fraction * (float)(start - end);
+      change = (change == 0) ? 1 : change;
+      return current - change;
+   }
+    */
 }
 
 // the backing datastore of channel state
@@ -152,7 +134,7 @@ void test1(void) {
       .frameEndCB             = t1_FrameEnd,
       .channelChangeCB        = t1_ChanCH,
       .channelChangeGroupCB   = t1_ChanGroupCH,
-      .interpolator           = t1_Interpolate,
+      .interpolator           = t1_RolloverInterpolate,
       .hwConfig = {
          .setup               = t1_HwSetup,
          .teardown            = t1_HwTeardown,
