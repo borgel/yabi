@@ -82,6 +82,7 @@ static void t1_doLoop(int iterations, int delayMS) {
 static yabi_ChanValue t1_RolloverInterpolate(yabi_ChanValue current, yabi_ChanValue start, yabi_ChanValue end, float fraction) {
    //printf("inter: c:%d s:%d e:%d f:%f\n", current, start, end, fraction);
 
+   bool increasing;
    uint32_t change;
    uint8_t mod = 0;
 
@@ -94,17 +95,37 @@ static yabi_ChanValue t1_RolloverInterpolate(yabi_ChanValue current, yabi_ChanVa
 
    if(end > start)   // XXX increasing
    {
+      increasing = true;
+
       printf("inc (%d -> %d) ", start, end);
       if( end - start > (start + 0xFF) - end) {
          printf(" ROLL TOP   \n");
+         mod = 0xFF;
+         increasing = false;
       }
    }
    else     // XXX decreasing
    {
+      increasing = false;
+
       printf("dec (%d -> %d) ", start, end);
       if( start - end > (end + 0xFF) - start) {
          printf(" ROLL BOTTOM   \n");
+         mod = 0xFF;
+         increasing = true;
       }
+   }
+
+   if(increasing) {
+      change = fraction * (float)((float)(end + mod) - (float)start);
+      // make sure any change < 0 is rounded up (we only deal in integers)
+      change = (change == 0) ? 1 : change;
+      return (uint8_t)(current + change);
+   }
+   else {
+      change = fraction * (float)((float)(start + mod) - (float)end);
+      change = (change == 0) ? 1 : change;
+      return (uint8_t)(current - change);
    }
 
    /*
