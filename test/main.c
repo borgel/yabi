@@ -56,18 +56,20 @@ static void t1_doLoop(int iterations, int delayMS) {
    for(int i = 0; i < iterations; i++) {
       if(i == 2) {
          //chan id, target, time (ms)
-         res = yabi_setChannel(5, 100, 400);
-         res = yabi_setChannel(2, 100, 452);
-         res = yabi_setChannel(7, 250, 10);
+         //res = yabi_setChannel(5, 100, 400);
+         //res = yabi_setChannel(2, 100, 452);
+         res = yabi_setChannel(0, 10, 10);   //rollover bottom
+         //res = yabi_setChannel(7, 250, 10);   //rollover top
          if(res != YABI_OK) {
             printf("SetChannel Err: Code %d\n", res);
          }
       }
       else if(i == 3) {
-         res = yabi_setChannel(7, 10, 550);
+         res = yabi_setChannel(0, 250, 550); //rollober bottom
+         //res = yabi_setChannel(7, 10, 550);   //rollover top
       }
       else if(i == 10) {
-         res = yabi_setChannel(2, 20, 452);
+         //res = yabi_setChannel(2, 20, 452);
       }
 
       yabi_giveTime(time);
@@ -78,10 +80,10 @@ static void t1_doLoop(int iterations, int delayMS) {
 }
 
 static yabi_ChanValue t1_RolloverInterpolate(yabi_ChanValue current, yabi_ChanValue start, yabi_ChanValue end, float fraction) {
-   printf("inter: c:%d s:%d e:%d f:%f\n", current, start, end, fraction);
+   //printf("inter: c:%d s:%d e:%d f:%f\n", current, start, end, fraction);
 
    uint32_t change;
-   uint8_t mod;
+   uint8_t mod = 0;
 
    //printf("cur - 
    //TODO how to we determine which way to approach? -- or ++ around the circle?
@@ -90,7 +92,24 @@ static yabi_ChanValue t1_RolloverInterpolate(yabi_ChanValue current, yabi_ChanVa
    //compare to target and target + 255
    // 250->255+10 (265) is faster ++ than 250->10
 
-   // rollover is the new less than
+   if(end > start)   // XXX increasing
+   {
+      printf("inc (%d -> %d) ", start, end);
+      if( end - start > (start + 0xFF) - end) {
+         printf(" ROLL TOP   \n");
+      }
+   }
+   else     // XXX decreasing
+   {
+      printf("dec (%d -> %d) ", start, end);
+      if( start - end > (end + 0xFF) - start) {
+         printf(" ROLL BOTTOM   \n");
+      }
+   }
+
+   /*
+   // what fork is this? inc and inc/distance?
+   //
    //TODO need abs?
    if(((0xFF + end) - start) < (end - start)) {
       printf("sub");
@@ -103,7 +122,8 @@ static yabi_ChanValue t1_RolloverInterpolate(yabi_ChanValue current, yabi_ChanVa
 
    change = fraction * (float)((float)(end + mod) - (float)start);
    return (uint8_t)(current + change);
-   /*
+   */
+
    if(end > start) {
       change = fraction * (float)((float)end - (float)start);
       // make sure any change < 0 is rounded up (we only deal in integers)
@@ -115,7 +135,6 @@ static yabi_ChanValue t1_RolloverInterpolate(yabi_ChanValue current, yabi_ChanVa
       change = (change == 0) ? 1 : change;
       return current - change;
    }
-    */
 }
 
 // the backing datastore of channel state
