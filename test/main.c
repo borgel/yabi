@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include "yabi/yabi.h"
 
@@ -55,20 +56,105 @@ static void t1_doLoop(int iterations, int delayMS) {
    for(int i = 0; i < iterations; i++) {
       if(i == 2) {
          //chan id, target, time (ms)
-         res = yabi_setChannel(5, 100, 400);
-         res = yabi_setChannel(2, 100, 452);
+         //res = yabi_setChannel(5, 100, 400);
+         //res = yabi_setChannel(2, 100, 452);
+         res = yabi_setChannel(0, 10, 10);   //rollover bottom
+         //res = yabi_setChannel(7, 250, 10);   //rollover top
          if(res != YABI_OK) {
             printf("SetChannel Err: Code %d\n", res);
          }
       }
+      else if(i == 3) {
+         res = yabi_setChannel(0, 250, 550); //rollober bottom
+         //res = yabi_setChannel(7, 10, 550);   //rollover top
+      }
       else if(i == 10) {
-         res = yabi_setChannel(2, 20, 452);
+         //res = yabi_setChannel(2, 20, 452);
       }
 
       yabi_giveTime(time);
 
       usleep(US_TO_MS * delayMS);
       time += delayMS;
+   }
+}
+
+static yabi_ChanValue t1_RolloverInterpolate(yabi_ChanValue current, yabi_ChanValue start, yabi_ChanValue end, float fraction) {
+   //printf("inter: c:%d s:%d e:%d f:%f\n", current, start, end, fraction);
+
+   bool increasing;
+   uint32_t change;
+   uint8_t mod = 0;
+
+   //printf("cur - 
+   //TODO how to we determine which way to approach? -- or ++ around the circle?
+   // mod math?
+   // 250->10 is faster ++ than --
+   //compare to target and target + 255
+   // 250->255+10 (265) is faster ++ than 250->10
+
+   if(end > start)   // XXX increasing
+   {
+      increasing = true;
+
+      printf("inc (%d -> %d) ", start, end);
+      if( end - start > (start + 0xFF) - end) {
+         printf(" ROLL TOP   \n");
+         mod = 0xFF;
+         increasing = false;
+      }
+   }
+   else     // XXX decreasing
+   {
+      increasing = false;
+
+      printf("dec (%d -> %d) ", start, end);
+      if( start - end > (end + 0xFF) - start) {
+         printf(" ROLL BOTTOM   \n");
+         mod = 0xFF;
+         increasing = true;
+      }
+   }
+
+   if(increasing) {
+      change = fraction * (float)((float)(end + mod) - (float)start);
+      // make sure any change < 0 is rounded up (we only deal in integers)
+      change = (change == 0) ? 1 : change;
+      return (uint8_t)(current + change);
+   }
+   else {
+      change = fraction * (float)((float)(start + mod) - (float)end);
+      change = (change == 0) ? 1 : change;
+      return (uint8_t)(current - change);
+   }
+
+   /*
+   // what fork is this? inc and inc/distance?
+   //
+   //TODO need abs?
+   if(((0xFF + end) - start) < (end - start)) {
+      printf("sub");
+      mod = 0xFF;
+   }
+   else {
+      printf("normal");
+      mod = 0;
+   }
+
+   change = fraction * (float)((float)(end + mod) - (float)start);
+   return (uint8_t)(current + change);
+   */
+
+   if(end > start) {
+      change = fraction * (float)((float)end - (float)start);
+      // make sure any change < 0 is rounded up (we only deal in integers)
+      change = (change == 0) ? 1 : change;
+      return current + change;
+   }
+   else {
+      change = fraction * (float)(start - end);
+      change = (change == 0) ? 1 : change;
+      return current - change;
    }
 }
 
@@ -88,6 +174,7 @@ void test1(void) {
       .frameEndCB             = t1_FrameEnd,
       .channelChangeCB        = t1_ChanCH,
       .channelChangeGroupCB   = t1_ChanGroupCH,
+      .interpolator           = t1_RolloverInterpolate,
       .hwConfig = {
          .setup               = t1_HwSetup,
          .teardown            = t1_HwTeardown,
