@@ -90,7 +90,8 @@ yabi_Error yabi_giveTime(uint32_t systimeMS) {
    //FIXME use calculation that prevents wraps
    uint32_t timeChange = systimeMS - state.lastUpdateMS;
 
-   float timeFraction;
+   uint32_t timeSinceStart;
+   float totalTime;
    struct yabi_ChannelRecord *r;
    int i;
    for(i = 0; i < state.numChannels; i++) {

@@ -58,14 +58,17 @@ static void t1_doLoop(int iterations, int delayMS) {
          //chan id, target, time (ms)
          //res = yabi_setChannel(5, 100, 400);
          //res = yabi_setChannel(2, 100, 452);
-         res = yabi_setChannel(0, 10, 10);   //rollover bottom
+         //res = yabi_setChannel(1, 100, 30000);    //slow up
+         res = yabi_setChannel(1, 100, 1);    //slow down
+         //res = yabi_setChannel(0, 10, 10);   //rollover bottom
          //res = yabi_setChannel(7, 250, 10);   //rollover top
          if(res != YABI_OK) {
             printf("SetChannel Err: Code %d\n", res);
          }
       }
       else if(i == 3) {
-         res = yabi_setChannel(0, 250, 550); //rollober bottom
+         res = yabi_setChannel(1, 1, 30000);    //slow down
+         //res = yabi_setChannel(0, 250, 550); //rollober bottom
          //res = yabi_setChannel(7, 10, 550);   //rollover top
       }
       else if(i == 10) {
@@ -83,7 +86,7 @@ static yabi_ChanValue t1_RolloverInterpolate(yabi_ChanValue current, yabi_ChanVa
    printf("inter: c:%d s:%d e:%d f:%f af:%f\n", current, start, end, fraction, absoluteFraction);
 
    bool increasing;
-   uint32_t change;
+   uint32_t error = 0;
    uint8_t mod = 0;
 
    //printf("cur - 
@@ -117,44 +120,18 @@ static yabi_ChanValue t1_RolloverInterpolate(yabi_ChanValue current, yabi_ChanVa
    }
 
    if(increasing) {
-      change = fraction * (float)((float)(end + mod) - (float)start);
-      // make sure any change < 0 is rounded up (we only deal in integers)
-      change = (change == 0) ? 1 : change;
-      return (uint8_t)(current + change);
+      // what's the absolute value we should be at now?
+      error = absoluteFraction * (float)((float)(end + mod) - (float)start);
+      // what's the difference between that and the current value?
+      error = error - current;
+
+      return (uint8_t)current + error;
    }
    else {
-      change = fraction * (float)((float)(start + mod) - (float)end);
-      change = (change == 0) ? 1 : change;
-      return (uint8_t)(current - change);
-   }
+      error = (1.0 - absoluteFraction) * (float)((float)(start + mod) - (float)end);
+      error = current - error;
 
-   /*
-   // what fork is this? inc and inc/distance?
-   //
-   //TODO need abs?
-   if(((0xFF + end) - start) < (end - start)) {
-      printf("sub");
-      mod = 0xFF;
-   }
-   else {
-      printf("normal");
-      mod = 0;
-   }
-
-   change = fraction * (float)((float)(end + mod) - (float)start);
-   return (uint8_t)(current + change);
-   */
-
-   if(end > start) {
-      change = fraction * (float)((float)end - (float)start);
-      // make sure any change < 0 is rounded up (we only deal in integers)
-      change = (change == 0) ? 1 : change;
-      return current + change;
-   }
-   else {
-      change = fraction * (float)(start - end);
-      change = (change == 0) ? 1 : change;
-      return current - change;
+      return (uint8_t)current - error;
    }
 }
 
