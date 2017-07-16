@@ -25,7 +25,7 @@ struct yabi_State{
 };
 static struct yabi_State state = {0};
 
-static yabi_ChanValue yabi_DefaultInterpolator(yabi_ChanValue current, yabi_ChanValue start, yabi_ChanValue end, float fraction);
+static yabi_ChanValue yabi_DefaultInterpolator(yabi_ChanValue current, yabi_ChanValue start, yabi_ChanValue end, float fraction, float absoluteFraction);
 
 /*
  * Initialize this YABI instance.
@@ -105,10 +105,10 @@ yabi_Error yabi_giveTime(uint32_t systimeMS) {
          }
          else {
             //TODO make all this fixed point
-            timeFraction = r->transitionEndMS - r->transitionStartMS;
-            timeFraction = (float)timeChange / timeFraction;
+            timeSinceStart = systimeMS - r->transitionStartMS;
+            totalTime = r->transitionEndMS - r->transitionStartMS;
 
-            r->value = state.config.interpolator(r->value, r->valuePrevious, r->valueTarget, timeFraction);
+            r->value = state.config.interpolator(r->value, r->valuePrevious, r->valueTarget, (float)timeChange / totalTime, timeSinceStart / totalTime);
          }
 
          if(state.config.channelChangeCB) {
@@ -176,7 +176,7 @@ yabi_Error yabi_setChannelGroup(struct yabi_ChannelGroup channels[], uint32_t nu
  * Pass in the current value, the start and end values, and the fraction between start and end that this slice is.
  * Return the value to be assigned to the current channel.
  */
-static yabi_ChanValue yabi_DefaultInterpolator(yabi_ChanValue current, yabi_ChanValue start, yabi_ChanValue end, float fraction) {
+static yabi_ChanValue yabi_DefaultInterpolator(yabi_ChanValue current, yabi_ChanValue start, yabi_ChanValue end, float fraction, float absoluteFraction) {
    yabi_ChanValue change;
 
    //LERP it (start + percent * (end - start));

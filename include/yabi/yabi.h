@@ -38,7 +38,7 @@ typedef void (*yabi_FrameStartCallback)(yabi_FrameID frame);
 typedef void (*yabi_FrameEndCallback)(yabi_FrameID frame);
 typedef void (*yabi_ChannelChange)(yabi_ChanID chan, yabi_ChanValue value);
 typedef void (*yabi_ChannelGroupChange)(struct yabi_ChannelState channelVals[], uint32_t num);
-typedef yabi_ChanValue (*yabi_Interpolator)(yabi_ChanValue current, yabi_ChanValue start, yabi_ChanValue end, float fraction);
+typedef yabi_ChanValue (*yabi_Interpolator)(yabi_ChanValue current, yabi_ChanValue start, yabi_ChanValue end, float fraction, float absoluteFraction);
 
 typedef void* const (*yabi_HardwareSetup)(void);
 typedef void (*yabi_HardwareTeardown)(void* const hwConfig);

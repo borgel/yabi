@@ -79,8 +79,8 @@ static void t1_doLoop(int iterations, int delayMS) {
    }
 }
 
-static yabi_ChanValue t1_RolloverInterpolate(yabi_ChanValue current, yabi_ChanValue start, yabi_ChanValue end, float fraction) {
-   //printf("inter: c:%d s:%d e:%d f:%f\n", current, start, end, fraction);
+static yabi_ChanValue t1_RolloverInterpolate(yabi_ChanValue current, yabi_ChanValue start, yabi_ChanValue end, float fraction, float absoluteFraction) {
+   printf("inter: c:%d s:%d e:%d f:%f af:%f\n", current, start, end, fraction, absoluteFraction);
 
    bool increasing;
    uint32_t change;
